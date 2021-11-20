@@ -1,4 +1,9 @@
+using Catalog.Repositories;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Create Singleton instance
+builder.Services.AddSingleton<IItemsRepository, InMemItemsRepository>();
 
 // Add services to the container.
 
