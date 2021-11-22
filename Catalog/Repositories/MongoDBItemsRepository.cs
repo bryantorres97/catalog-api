@@ -15,29 +15,29 @@ namespace Catalog.Repositories
             IMongoDatabase database = mongoClient.GetDatabase(databaseName);
             _itemsCollection = database.GetCollection<Item>(collectionName);
         }
-        public async void CreateItem(Item item)
+        public async Task CreateItemAsync(Item item)
         {
             await _itemsCollection.InsertOneAsync(item);
         }
 
-        public async void DeleteItem(Guid id)
+        public async Task DeleteItemAsync(Guid id)
         {
             FilterDefinition<Item> filter = _filterBuilder.Eq(item => item.Id, id);
             await _itemsCollection.DeleteOneAsync(filter);
         }
 
-        public Item GetItem(Guid id)
+        public async Task<Item> GetItemAsync(Guid id)
         {
             FilterDefinition<Item> filter = _filterBuilder.Eq(item => item.Id, id);
-            return _itemsCollection.Find(filter).SingleOrDefault();
+            return await _itemsCollection.Find(filter).SingleOrDefaultAsync();
         }
 
-        public IEnumerable<Item> GetItems()
+        public async Task<IEnumerable<Item>> GetItemsAsync()
         {
-            return _itemsCollection.Find(new BsonDocument()).ToList();
+            return await _itemsCollection.Find(new BsonDocument()).ToListAsync();
         }
 
-        public async void UpdateItem(Item item)
+        public async Task UpdateItemAsync(Item item)
         {
             FilterDefinition<Item> filter = _filterBuilder.Eq(existingItem => existingItem.Id, item.Id);
             await _itemsCollection.ReplaceOneAsync(filter, item);
