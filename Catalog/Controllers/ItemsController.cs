@@ -27,13 +27,15 @@ namespace Catalog.Controllers
         [HttpGet("{id}")]
         public ActionResult<ItemDto> GetItem(Guid id)
         {
-            ItemDto item = repository.GetItem(id).AsDto();
+            Item item = repository.GetItem(id);
 
             if (item is null) { 
                 return NotFound(); 
             }
 
-            return item;
+            ItemDto itemDto = item.AsDto();
+
+            return itemDto;
         }
 
         [HttpPost]

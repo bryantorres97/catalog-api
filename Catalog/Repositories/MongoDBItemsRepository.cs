@@ -1,4 +1,5 @@
 ﻿using Catalog.Entities;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Catalog.Repositories
@@ -8,6 +9,7 @@ namespace Catalog.Repositories
         private const string databaseName = "Catalog";
         private const string collectionName = "items";
         private readonly IMongoCollection<Item> _itemsCollection;
+        private readonly FilterDefinitionBuilder<Item> _filterBuilder = Builders<Item>.Filter;
         public MongoDBItemsRepository(IMongoClient mongoClient)
         {
             IMongoDatabase database = mongoClient.GetDatabase(databaseName);
@@ -18,24 +20,27 @@ namespace Catalog.Repositories
             await _itemsCollection.InsertOneAsync(item);
         }
 
-        public void DeleteItem(Guid id)
+        public async void DeleteItem(Guid id)
         {
-            throw new NotImplementedException();
+            FilterDefinition<Item> filter = _filterBuilder.Eq(item => item.Id, id);
+            await _itemsCollection.DeleteOneAsync(filter);
         }
 
         public Item GetItem(Guid id)
         {
-            throw new NotImplementedException();
+            FilterDefinition<Item> filter = _filterBuilder.Eq(item => item.Id, id);
+            return _itemsCollection.Find(filter).SingleOrDefault();
         }
 
         public IEnumerable<Item> GetItems()
         {
-            throw new NotImplementedException();
+            return _itemsCollection.Find(new BsonDocument()).ToList();
         }
 
-        public void UpdateItem(Item item)
+        public async void UpdateItem(Item item)
         {
-            throw new NotImplementedException();
+            FilterDefinition<Item> filter = _filterBuilder.Eq(existingItem => existingItem.Id, item.Id);
+            await _itemsCollection.ReplaceOneAsync(filter, item);
         }
     }
 }
