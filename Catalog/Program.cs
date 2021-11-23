@@ -1,20 +1,21 @@
 using Catalog.Repositories;
 using Catalog.Settings;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // MongoDb Connection
 BsonSerializer.RegisterSerializer(new GuidSerializer(MongoDB.Bson.BsonType.String));
 BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(MongoDB.Bson.BsonType.String));
+MongoDbSettings _mongoDbSettings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
 
 builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
 {
-    var settings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
-    var connectionString = settings.ConnectionString;
-    return new MongoClient(connectionString);
+    return new MongoClient(_mongoDbSettings.ConnectionString);
 });
 
 // Create Singleton instance
@@ -26,6 +27,13 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks()
+    .AddMongoDb(
+    _mongoDbSettings.ConnectionString, 
+    name: "mongodb", 
+    timeout: TimeSpan.FromSeconds(3),
+    tags: new[]{"ready"}
+    );
 
 var app = builder.Build();
 
@@ -41,5 +49,29 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = (check) => check.Tags.Contains("ready"),
+    ResponseWriter = async(context, report) =>
+    {
+        var result = JsonSerializer.Serialize(
+            new
+            {
+                status = report.Status.ToString(),
+                checks = report.Entries.Select(entry => new { 
+                    name = entry.Key, 
+                    status = entry.Value.Status.ToString(),
+                    exception = entry.Value.Exception != null ? entry.Value.Exception.Message: "none",
+                    duration = entry.Value.Duration.ToString(),
+                })
+
+            }
+    );
+    }
+});
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = (_) => false
+});
 
 app.Run();
