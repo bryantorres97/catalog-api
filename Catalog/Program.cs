@@ -9,9 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 // MongoDb Connection
 BsonSerializer.RegisterSerializer(new GuidSerializer(MongoDB.Bson.BsonType.String));
 BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(MongoDB.Bson.BsonType.String));
+
 builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
 {
-    var connectionString = new MongoDbSettings().ConnectionString;
+    var settings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
+    var connectionString = settings.ConnectionString;
     return new MongoClient(connectionString);
 });
 
